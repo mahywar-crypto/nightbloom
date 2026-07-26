@@ -1,0 +1,16 @@
+name = "nightbloom-companion"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# After running `wrangler kv namespace create RATE_LIMIT_KV`, paste the
+# returned id below (and again under [[env.production.kv_namespaces]] if you
+# deploy to a named environment).
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[vars]
+# Max chat messages a single IP may send per rolling day. Tune to taste —
+# this is the main cost control since the app has no user accounts.
+DAILY_MESSAGE_LIMIT = "40"

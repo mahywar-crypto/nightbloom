@@ -10,11 +10,11 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import Animated, { FadeIn, FadeInLeft, FadeInRight } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../components/GradientBackground';
 import { Button } from '../components/Button';
+import { FadeInView } from '../components/FadeInView';
 import { RecommendationList } from '../components/RecommendationList';
 import { colors, radii, spacing, typography } from '../lib/theme';
 import { FONT_BOLD, FONT_REGULAR } from '../lib/fonts';
@@ -157,9 +157,9 @@ export default function CompanionScreen() {
             onContentSizeChange={scrollToEnd}
           >
             {messages.map((m) => (
-              <Animated.View
+              <FadeInView
                 key={m.id}
-                entering={m.role === 'user' ? FadeInRight.springify().damping(16) : FadeInLeft.springify().damping(16)}
+                direction={m.role === 'user' ? 'right' : 'left'}
                 style={[
                   styles.bubble,
                   m.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant,
@@ -168,17 +168,17 @@ export default function CompanionScreen() {
                 <Text style={m.role === 'user' ? styles.bubbleTextUser : styles.bubbleTextAssistant}>
                   {m.content}
                 </Text>
-              </Animated.View>
+              </FadeInView>
             ))}
             {sending && (
-              <Animated.View entering={FadeIn} style={[styles.bubble, styles.bubbleAssistant, styles.typingBubble]}>
+              <FadeInView style={[styles.bubble, styles.bubbleAssistant, styles.typingBubble]}>
                 <ActivityIndicator size="small" color={colors.indigoDeep} />
-              </Animated.View>
+              </FadeInView>
             )}
             {errorText && (
-              <Animated.View entering={FadeIn} style={[styles.bubble, styles.bubbleError]}>
+              <FadeInView style={[styles.bubble, styles.bubbleError]}>
                 <Text style={styles.bubbleTextError}>{errorText}</Text>
-              </Animated.View>
+              </FadeInView>
             )}
           </ScrollView>
 

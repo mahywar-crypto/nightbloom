@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Animated, { SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../components/GradientBackground';
@@ -9,6 +8,7 @@ import { Button } from '../../components/Button';
 import { Chip } from '../../components/Chip';
 import { IntensityScale } from '../../components/IntensityScale';
 import { RecommendationList } from '../../components/RecommendationList';
+import { StepTransition } from '../../components/StepTransition';
 import { cardTint, colors, spacing, typography } from '../../lib/theme';
 import {
   HIGH_INTENSITY_RECOMMENDATION,
@@ -110,7 +110,7 @@ export default function CheckInScreen() {
               </View>
 
               {step === 'mood' && (
-                <Animated.View entering={SlideInRight.springify().damping(18)} exiting={SlideOutLeft.duration(150)}>
+                <StepTransition>
                   <Text style={typography.heading}>Pick the mood closest to how you feel</Text>
                   <View style={styles.moodGrid}>
                     {MOODS.map((m) => (
@@ -128,11 +128,11 @@ export default function CheckInScreen() {
                     style={{ marginTop: spacing.md }}
                     variant={mood ? 'primary' : 'ghost'}
                   />
-                </Animated.View>
+                </StepTransition>
               )}
 
               {step === 'triggers' && (
-                <Animated.View entering={SlideInRight.springify().damping(18)} exiting={SlideOutLeft.duration(150)}>
+                <StepTransition>
                   <Text style={typography.heading}>What might be contributing to this?</Text>
                   <Text style={typography.caption}>Choose any that apply, or none.</Text>
                   <View style={styles.moodGrid}>
@@ -149,11 +149,11 @@ export default function CheckInScreen() {
                     <Button label="Back" variant="ghost" onPress={() => setStep('mood')} />
                     <Button label="Next" onPress={() => setStep('intensity')} />
                   </View>
-                </Animated.View>
+                </StepTransition>
               )}
 
               {step === 'intensity' && (
-                <Animated.View entering={SlideInRight.springify().damping(18)} exiting={SlideOutLeft.duration(150)}>
+                <StepTransition>
                   <Text style={typography.heading}>How intense does it feel?</Text>
                   <View style={{ marginTop: spacing.md }}>
                     <IntensityScale value={intensity} onChange={setIntensity} />
@@ -162,11 +162,11 @@ export default function CheckInScreen() {
                     <Button label="Back" variant="ghost" onPress={() => setStep('triggers')} />
                     <Button label="Next" onPress={() => setStep('note')} />
                   </View>
-                </Animated.View>
+                </StepTransition>
               )}
 
               {step === 'note' && (
-                <Animated.View entering={SlideInRight.springify().damping(18)} exiting={SlideOutLeft.duration(150)}>
+                <StepTransition>
                   <Text style={typography.heading}>Anything you want to note? (optional)</Text>
                   <TextInput
                     style={styles.noteInput}
@@ -180,7 +180,7 @@ export default function CheckInScreen() {
                     <Button label="Back" variant="ghost" onPress={() => setStep('intensity')} />
                     <Button label="Save check-in" onPress={finish} />
                   </View>
-                </Animated.View>
+                </StepTransition>
               )}
             </Card>
           )}

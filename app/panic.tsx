@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GradientBackground } from '../components/GradientBackground';
 import { BreathingCircle } from '../components/BreathingCircle';
 import { Button } from '../components/Button';
@@ -13,6 +13,11 @@ type Stage = 'grounding' | 'breathing' | 'closing';
 
 export default function PanicScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  // fullScreenModal presentations on iOS can report a stale/zero top inset on
+  // first render, which would crop the header against the notch. Floor it at
+  // a sensible minimum instead of trusting SafeAreaView alone here.
+  const headerTopPadding = Math.max(insets.top, 44) + spacing.sm;
   const [stage, setStage] = useState<Stage>('grounding');
   const [stepIndex, setStepIndex] = useState(0);
   const [reminderIndex] = useState(() => Math.floor(Math.random() * PANIC_REMINDERS.length));
@@ -30,8 +35,8 @@ export default function PanicScreen() {
   return (
     <View style={{ flex: 1 }}>
       <GradientBackground variant="night" />
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
+        <View style={[styles.header, { paddingTop: headerTopPadding }]}>
           <Button label="Close" variant="ghostLight" onPress={() => router.back()} />
         </View>
 
@@ -88,7 +93,7 @@ export default function PanicScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  header: { paddingHorizontal: spacing.lg },
   center: {
     flexGrow: 1,
     alignItems: 'center',

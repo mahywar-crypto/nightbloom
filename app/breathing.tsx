@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GradientBackground } from '../components/GradientBackground';
 import { BreathingCircle } from '../components/BreathingCircle';
 import { Button } from '../components/Button';
@@ -10,13 +10,18 @@ import { FONT_REGULAR } from '../lib/fonts';
 
 export default function BreathingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  // fullScreenModal presentations on iOS can report a stale/zero top inset on
+  // first render, which would crop the header against the notch. Floor it at
+  // a sensible minimum instead of trusting SafeAreaView alone here.
+  const headerTopPadding = Math.max(insets.top, 44) + spacing.sm;
   const [cycles, setCycles] = useState(0);
 
   return (
     <View style={{ flex: 1 }}>
       <GradientBackground variant="calm" />
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
+      <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
+        <View style={[styles.header, { paddingTop: headerTopPadding }]}>
           <Button label="Close" variant="ghostLight" onPress={() => router.back()} />
         </View>
 
@@ -36,7 +41,7 @@ export default function BreathingScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, justifyContent: 'space-between' },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  header: { paddingHorizontal: spacing.lg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   caption: {
     marginTop: spacing.xl,

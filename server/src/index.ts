@@ -17,7 +17,10 @@ const CORS_HEADERS: Record<string, string> = {
 
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_LENGTH = 4000;
-const GEMINI_MODEL = 'gemini-2.0-flash';
+// Using the "-latest" alias (rather than pinning a dated version) so Google
+// can migrate this to their current recommended fast model over time instead
+// of it silently 404ing again when a specific version gets retired.
+const GEMINI_MODEL = 'gemini-flash-latest';
 
 const SYSTEM_PROMPT = `You are the "Companion" inside Nightbloom, a mental-health self-help app. You exist so
 someone who feels lonely or has no one to talk to right now has a warm, patient

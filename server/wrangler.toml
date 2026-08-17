@@ -8,7 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 # deploy to a named environment).
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "4c0d07e7a8b54475a93fda6240f7be87"
 
 [vars]
 # Max chat messages a single IP may send per rolling day. Tune to taste —

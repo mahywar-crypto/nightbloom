@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GradientBackground } from '../components/GradientBackground';
 import { Button } from '../components/Button';
 import { FadeInView } from '../components/FadeInView';
@@ -28,6 +28,11 @@ const GREETING =
 
 export default function CompanionScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  // fullScreenModal presentations on iOS can report a stale/zero top inset on
+  // first render, which would crop the header against the notch. Floor it at
+  // a sensible minimum instead of trusting SafeAreaView alone here.
+  const headerTopPadding = Math.max(insets.top, 44) + spacing.sm;
   const scrollRef = useRef<ScrollView>(null);
   const [messages, setMessages] = useState<CompanionMessage[]>([]);
   const [input, setInput] = useState('');
@@ -104,8 +109,8 @@ export default function CompanionScreen() {
     return (
       <View style={{ flex: 1 }}>
         <GradientBackground variant="calm" />
-        <SafeAreaView style={{ flex: 1 }}>
-          <View style={styles.header}>
+        <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
+          <View style={[styles.header, { paddingTop: headerTopPadding }]}>
             <Button label="Back to chat" variant="ghostLight" onPress={() => setWrappingUp(false)} />
             <Text style={styles.headerTitle}>Take care</Text>
             <View style={{ width: 1 }} />
@@ -133,13 +138,13 @@ export default function CompanionScreen() {
   return (
     <View style={{ flex: 1 }}>
       <GradientBackground variant="calm" />
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
         >
-          <View style={styles.header}>
+          <View style={[styles.header, { paddingTop: headerTopPadding }]}>
             <Button label="Close" variant="ghostLight" onPress={handleClose} />
             <Text style={styles.headerTitle}>Companion</Text>
             <Button label="Clear" variant="ghostLight" onPress={confirmClear} />

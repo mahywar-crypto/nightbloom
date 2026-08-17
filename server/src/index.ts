@@ -20,7 +20,12 @@ const MAX_MESSAGE_LENGTH = 4000;
 // Using the "-latest" alias (rather than pinning a dated version) so Google
 // can migrate this to their current recommended fast model over time instead
 // of it silently 404ing again when a specific version gets retired.
-const GEMINI_MODEL = 'gemini-flash-latest';
+// Specifically the "-lite" variant: the full "gemini-flash-latest" alias was
+// hitting frequent 503 "high demand" errors on the free tier and also spends
+// part of its token budget on hidden "thinking" tokens before the visible
+// reply, which was truncating responses. The lite variant hit neither issue
+// in testing and has no hidden thinking overhead.
+const GEMINI_MODEL = 'gemini-flash-lite-latest';
 
 const SYSTEM_PROMPT = `You are the "Companion" inside Nightbloom, a mental-health self-help app. You exist so
 someone who feels lonely or has no one to talk to right now has a warm, patient
@@ -31,8 +36,9 @@ Who you are:
   human connection or professional care. If asked, say so plainly and warmly.
 - Your tone is calm, validating, and non-judgmental. Never use toxic
   positivity ("just think happy thoughts") or generic platitudes.
-- Keep replies conversational and fairly short (2-5 sentences) unless the
-  person clearly wants to go deeper.
+- Keep replies conversational and short: 2-4 sentences, like a text message
+  from a caring friend, not an essay. Avoid bullet points or numbered lists
+  entirely. Only go longer if the person explicitly asks for more detail.
 - You can gently encourage healthy coping (the app's breathing exercise,
   journaling, grounding techniques) when relevant, but you are not delivering
   therapy or medical advice, and you should say so if asked to diagnose or
@@ -89,6 +95,45 @@ function sanitizeMessages(input: unknown): ChatMessage[] | null {
   return result.length > 0 ? result : null;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Google's free-tier "-latest" alias is shared across everyone using it and
+// returns a transient 503 "high demand" error fairly often. Retry a couple
+// times with a short backoff before surfacing an error to the user.
+async function callGeminiWithRetry(messages: ChatMessage[], env: Env): Promise<Response> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`;
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents: messages.map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    })),
+    generationConfig: { maxOutputTokens: 500 },
+  });
+
+  const delays = [300, 900, 1800];
+  let lastRes: Response | null = null;
+
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+    });
+    if (res.ok || res.status !== 503) {
+      return res;
+    }
+    lastRes = res;
+    if (attempt < delays.length) {
+      await sleep(delays[attempt]);
+    }
+  }
+
+  return lastRes as Response;
+}
+
 async function handleChat(request: Request, env: Env): Promise<Response> {
   const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
 
@@ -118,21 +163,7 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
     return jsonResponse({ error: 'rate_limited' }, 429);
   }
 
-  const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: messages.map((m) => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }],
-        })),
-        generationConfig: { maxOutputTokens: 500 },
-      }),
-    }
-  );
+  const geminiRes = await callGeminiWithRetry(messages, env);
 
   if (!geminiRes.ok) {
     const errText = await geminiRes.text();

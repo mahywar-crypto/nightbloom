@@ -1,7 +1,7 @@
 # Nightbloom Companion backend
 
 A small Cloudflare Worker that proxies chat messages from the Companion
-screen to Anthropic's API, so the app doesn't need to ship your API key or
+screen to Google's Gemini API, so the app doesn't need to ship your API key or
 require users to bring their own.
 
 It also:
@@ -23,11 +23,11 @@ npx wrangler kv namespace create RATE_LIMIT_KV
 Copy the `id` that command prints into `wrangler.toml` under
 `[[kv_namespaces]]`, replacing `REPLACE_WITH_KV_NAMESPACE_ID`.
 
-Then set your Anthropic API key as a secret (never committed to git):
+Then set your Gemini API key as a secret (never committed to git):
 
 ```bash
-npx wrangler secret put ANTHROPIC_API_KEY
-# paste your key from https://console.anthropic.com when prompted
+npx wrangler secret put GEMINI_API_KEY
+# paste your free key from https://aistudio.google.com/apikey when prompted
 ```
 
 ## Deploy
@@ -60,10 +60,14 @@ EXPO_PUBLIC_COMPANION_API_URL=http://localhost:8788
 
 ## Cost notes
 
-- Uses `claude-haiku-4-5-20251001`, Anthropic's fastest and cheapest current
-  model, chosen deliberately to keep per-message cost low for a chat feature
-  with no subscription attached yet.
+- Uses `gemini-2.0-flash`, which has a genuinely free tier (no credit card
+  required) with generous rate limits, chosen to keep this feature free to
+  run rather than pay-as-you-go.
 - The daily per-IP cap is a basic safeguard, not bulletproof (shared IPs,
   VPNs). If you ship this to real customers, consider tightening it or
   adding a lightweight per-device token (e.g. a random ID generated on first
   app launch and sent as a header) so limits track devices, not IPs.
+- Google's free tier also has its own rate limits (requests per minute/day)
+  independent of our own cap — if Companion starts erroring under heavy use,
+  check the Gemini API quota in Google AI Studio before assuming it's our
+  Worker's limit.

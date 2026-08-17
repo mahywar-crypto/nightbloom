@@ -1,6 +1,6 @@
 export interface Env {
   RATE_LIMIT_KV: KVNamespace;
-  ANTHROPIC_API_KEY: string;
+  GEMINI_API_KEY: string;
   DAILY_MESSAGE_LIMIT: string;
 }
 
@@ -17,6 +17,7 @@ const CORS_HEADERS: Record<string, string> = {
 
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_LENGTH = 4000;
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
 const SYSTEM_PROMPT = `You are the "Companion" inside Nightbloom, a mental-health self-help app. You exist so
 someone who feels lonely or has no one to talk to right now has a warm, patient
@@ -107,38 +108,39 @@ async function handleChat(request: Request, env: Env): Promise<Response> {
     return jsonResponse({ reply: CRISIS_RESPONSE, crisis: true });
   }
 
-  // Only requests that actually reach the paid Anthropic API count against
-  // the rate limit. Validation and crisis short-circuits above are free.
+  // Only requests that actually reach the Gemini API count against the
+  // rate limit. Validation and crisis short-circuits above are free.
   const allowed = await checkRateLimit(env, ip);
   if (!allowed) {
     return jsonResponse({ error: 'rate_limited' }, 429);
   }
 
-  const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
-      system: SYSTEM_PROMPT,
-      messages,
-    }),
-  });
+  const geminiRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: messages.map((m) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }],
+        })),
+        generationConfig: { maxOutputTokens: 500 },
+      }),
+    }
+  );
 
-  if (!anthropicRes.ok) {
-    const errText = await anthropicRes.text();
-    console.error('Anthropic API error', anthropicRes.status, errText);
+  if (!geminiRes.ok) {
+    const errText = await geminiRes.text();
+    console.error('Gemini API error', geminiRes.status, errText);
     return jsonResponse({ error: 'upstream_error' }, 502);
   }
 
-  const data = (await anthropicRes.json()) as {
-    content: Array<{ type: string; text?: string }>;
+  const data = (await geminiRes.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
-  const reply = data.content.find((c) => c.type === 'text')?.text ?? '';
+  const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 
   return jsonResponse({ reply });
 }
